@@ -3,6 +3,7 @@ import { type Board, type BoardSize, type PaintState, createBoard, paintTile } f
 import { buildShareHash, parseShareHash } from './lib/share'
 import type { SolveResult } from './lib/solver/common'
 import { solveHeuristic } from './lib/solver/heuristic'
+import { type ExactRun, type ExactRunner, runExactInWorker } from './lib/solver/runExact'
 import {
   type SavedBoard,
   deleteSavedBoard,
@@ -17,13 +18,15 @@ export interface BoardStoreState {
   board: Board
   brush: PaintState
   result: SolveResult | null
+  /** True while the exact solver is still working on the current board. */
+  solving: boolean
   savedBoards: SavedBoard[]
 }
 
 export type BoardStore = ReturnType<typeof createBoardStore>
 
 /** A share link in the URL wins over the autosaved working board. */
-export function createBoardStore(initialHash = '') {
+export function createBoardStore(initialHash = '', runExact: ExactRunner = runExactInWorker) {
   const shared = parseShareHash(initialHash)
   const initial = shared ?? loadWorkingBoard() ?? { title: '', board: createBoard(11) }
 
@@ -32,6 +35,7 @@ export function createBoardStore(initialHash = '') {
     board: initial.board,
     brush: 'on',
     result: null,
+    solving: false,
     savedBoards: loadSavedBoards(),
   })
 
@@ -40,12 +44,21 @@ export function createBoardStore(initialHash = '') {
     () => saveWorkingBoard(state.title, state.board),
     { deep: true, immediate: true },
   )
+  let activeRun: ExactRun | null = null
+  const cancelExact = () => {
+    activeRun?.cancel()
+    activeRun = null
+    state.solving = false
+  }
+
   watch(
     () => state.board,
     () => {
+      cancelExact()
       state.result = null
     },
-    { deep: true },
+    // Sync so an edit followed immediately by calculate() can't wipe the fresh result.
+    { deep: true, flush: 'sync' },
   )
 
   return {
@@ -60,8 +73,26 @@ export function createBoardStore(initialHash = '') {
       state.board = createBoard(size)
     },
 
-    calculate() {
+    /** Shows the instant heuristic answer, then replaces it with the proven optimum. */
+    async calculate() {
+      cancelExact()
       state.result = solveHeuristic(state.board)
+      if (state.result.status !== 'ok') return
+
+      const run = runExact(cloneBoard(state.board))
+      activeRun = run
+      state.solving = true
+      try {
+        const exact = await run.promise
+        if (activeRun === run) state.result = exact
+      } catch {
+        // Keep the heuristic answer; it is still a valid allocation.
+      } finally {
+        if (activeRun === run) {
+          activeRun = null
+          state.solving = false
+        }
+      }
     },
 
     save() {

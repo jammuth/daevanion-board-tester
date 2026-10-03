@@ -112,7 +112,12 @@ async function share() {
           Calculate
         </button>
 
-        <ResultPanel v-if="state.result" :board="state.board" :result="state.result" />
+        <ResultPanel
+          v-if="state.result"
+          :board="state.board"
+          :result="state.result"
+          :solving="state.solving"
+        />
 
         <section class="flex flex-col gap-2 rounded-lg border border-slate-700 bg-slate-900 p-4">
           <label class="text-sm font-semibold text-slate-300" for="board-title">Title</label>

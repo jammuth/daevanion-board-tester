@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App.vue'
 import { buildShareHash } from './lib/share'
@@ -25,8 +25,10 @@ describe('App', () => {
     await wrapper.find('[role="radio"]:nth-child(4)').trigger('click')
     await wrapper.find('[data-testid="tile-38"]').trigger('click')
     await wrapper.find('button.bg-amber-300.font-semibold').trigger('click')
+    await flushPromises()
 
     expect(wrapper.find('[data-testid="total-cost"]').text()).toBe('4')
+    expect(wrapper.find('[data-testid="result-quality"]').text()).toContain('Optimal')
     expect(wrapper.find('[data-testid="tile-49"]').classes()).toContain('ring-yellow-300')
   })
 

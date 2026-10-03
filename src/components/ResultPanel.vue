@@ -4,7 +4,7 @@ import { type Board, PAINT_STATES, TILE_COST } from '../lib/board'
 import type { SolveResult } from '../lib/solver/common'
 import { TILE_CLASS, TILE_LABEL } from '../tileStyles'
 
-const props = defineProps<{ board: Board; result: SolveResult }>()
+const props = defineProps<{ board: Board; result: SolveResult; solving: boolean }>()
 
 const breakdown = computed(() => {
   if (props.result.status !== 'ok') return []
@@ -29,9 +29,15 @@ const breakdown = computed(() => {
           {{ row.count }} × {{ TILE_LABEL[row.state] }} = {{ row.points }}
         </li>
       </ul>
-      <p class="mt-3 text-xs text-slate-400">
+      <p class="mt-3 text-sm" data-testid="result-quality">
+        <span v-if="result.optimal" class="text-green-400">Optimal — proven minimum.</span>
+        <span v-else-if="solving" class="animate-pulse text-amber-300">
+          Approximate — searching for the optimal answer…
+        </span>
+        <span v-else class="text-slate-400">Approximate — not proven optimal.</span>
+      </p>
+      <p class="mt-2 text-xs text-slate-400">
         Grey tiles outlined in yellow are the connectors to take. Faded tiles are not needed.
-        Heuristic result — close to minimal but not guaranteed optimal.
       </p>
     </template>
     <p v-else class="text-red-400" data-testid="unreachable-message">
