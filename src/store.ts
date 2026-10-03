@@ -69,7 +69,7 @@ export function createBoardStore(initialHash = '', runExact: ExactRunner = runEx
       paintTile(state.board, index, state.brush)
     },
 
-    resetBoard(size: BoardSize) {
+    resetBoard(size: BoardSize = state.board.size) {
       state.board = createBoard(size)
     },
 

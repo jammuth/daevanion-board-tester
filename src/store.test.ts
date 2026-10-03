@@ -23,6 +23,17 @@ describe('board store', () => {
     expect(tiles.filter((t) => t === 'on')).toHaveLength(120)
   })
 
+  it('clears to a fresh grey board of the same size, keeping the title', () => {
+    const store = createBoardStore()
+    store.resetBoard(13)
+    store.state.title = 'Keep me'
+    store.state.brush = 'off'
+    store.paint(0)
+    store.resetBoard()
+    expect(store.state.board).toEqual(createBoard(13))
+    expect(store.state.title).toBe('Keep me')
+  })
+
   it('paints with the selected brush', () => {
     const store = createBoardStore()
     store.state.brush = 'skill'

@@ -65,6 +65,31 @@ describe('App', () => {
     expect(wrapper.findAll('[data-testid^="tile-"]')).toHaveLength(169)
   })
 
+  it('disables Clear on a fresh board', async () => {
+    const wrapper = mount(App)
+    expect(wrapper.find('[data-testid="clear-board"]').attributes('disabled')).toBeDefined()
+  })
+
+  it('clears the board back to grey after confirming, keeping the size', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    const wrapper = mount(App)
+    await wrapper.findAll('[aria-label="Board size"] button')[1]!.trigger('click')
+    await wrapper.find('[role="radio"]:nth-child(1)').trigger('click')
+    await wrapper.find('[data-testid="tile-0"]').trigger('click')
+    const clear = wrapper.find('[data-testid="clear-board"]')
+    expect(clear.attributes('disabled')).toBeUndefined()
+
+    await clear.trigger('click')
+    expect(confirmSpy).toHaveBeenCalledOnce()
+    expect(wrapper.find('[data-testid="tile-0"]').classes()).toContain('bg-black')
+
+    confirmSpy.mockReturnValue(true)
+    await clear.trigger('click')
+    expect(wrapper.find('[data-testid="tile-0"]').classes()).toContain('bg-slate-500')
+    expect(wrapper.findAll('[data-testid^="tile-"]')).toHaveLength(169)
+    expect(wrapper.find('[data-testid="clear-board"]').attributes('disabled')).toBeDefined()
+  })
+
   it('opens a shared board from the URL', () => {
     window.location.hash = buildShareHash({ title: 'Shared build', board: SCREENSHOT_BOARD })
     const wrapper = mount(App)
