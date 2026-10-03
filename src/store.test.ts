@@ -5,7 +5,7 @@ import type { SolveResult } from './lib/solver/common'
 import { solveExact } from './lib/solver/exact'
 import type { ExactRunner } from './lib/solver/runExact'
 import { buildShareHash } from './lib/share'
-import { loadWorkingBoard } from './lib/storage'
+import { loadWorkingBoard, saveBoard } from './lib/storage'
 import { SCREENSHOT_BOARD } from './lib/testing/asciiBoard'
 import { createBoardStore } from './store'
 
@@ -16,6 +16,52 @@ describe('board store', () => {
     const store = createBoardStore()
     expect(store.state.board).toEqual(createBoard(11))
     expect(store.loadedFromShare).toBe(false)
+  })
+
+  it('starts on an all-grey board', () => {
+    const tiles = createBoardStore().state.board.tiles
+    expect(tiles.filter((t) => t === 'on')).toHaveLength(120)
+  })
+
+  it('clears to a fresh grey board of the same size', () => {
+    const store = createBoardStore()
+    store.resetBoard(13)
+    store.state.brush = 'off'
+    store.paint(0)
+    store.resetBoard()
+    expect(store.state.board).toEqual(createBoard(13))
+  })
+
+  it('titles a brand-new board after the saved-board count', () => {
+    expect(createBoardStore().state.title).toBe('Board #1')
+    localStorage.clear()
+    saveBoard('PvE', createBoard(11))
+    saveBoard('PvP', createBoard(11))
+    expect(createBoardStore().state.title).toBe('Board #3')
+  })
+
+  it('keeps the title of a restored working board or shared link', async () => {
+    const first = createBoardStore()
+    first.state.title = 'My draft'
+    await nextTick()
+    expect(createBoardStore().state.title).toBe('My draft')
+    const shared = createBoardStore(buildShareHash({ title: 'Shared', board: SCREENSHOT_BOARD }))
+    expect(shared.state.title).toBe('Shared')
+  })
+
+  it('gives a cleared or resized board the next free default title', () => {
+    const store = createBoardStore()
+    store.state.title = 'Board #1'
+    store.save()
+    store.state.title = 'Board #2'
+    store.save()
+    store.remove('Board #1')
+
+    store.resetBoard()
+    expect(store.state.title).toBe('Board #3')
+    store.state.title = 'Renamed'
+    store.resetBoard(13)
+    expect(store.state.title).toBe('Board #3')
   })
 
   it('paints with the selected brush', () => {
@@ -29,6 +75,7 @@ describe('board store', () => {
     const store = createBoardStore()
     store.calculate()
     expect(store.state.result).not.toBeNull()
+    store.state.brush = 'off'
     store.paint(3)
     await nextTick()
     expect(store.state.result).toBeNull()
@@ -69,6 +116,7 @@ describe('board store', () => {
   it('skips the exact solver when targets are unreachable', async () => {
     const { runs, runner } = manualRunner()
     const store = createBoardStore('', runner)
+    store.state.board = createBoard(11, 'off')
     store.state.brush = 'skill'
     store.paint(0)
     await store.calculate()
@@ -80,6 +128,7 @@ describe('board store', () => {
     const { runs, runner } = manualRunner()
     const store = createBoardStore('', runner)
     const done = store.calculate()
+    store.state.brush = 'off'
     store.paint(3)
     await nextTick()
     expect(store.state.solving).toBe(false)
@@ -103,10 +152,11 @@ describe('board store', () => {
   it('autosaves and restores the working board', async () => {
     const first = createBoardStore()
     first.state.title = 'Draft'
+    first.state.brush = 'skill'
     first.paint(0)
     await nextTick()
     expect(loadWorkingBoard()?.title).toBe('Draft')
-    expect(createBoardStore().state.board.tiles[0]).toBe('on')
+    expect(createBoardStore().state.board.tiles[0]).toBe('skill')
   })
 
   it('loads a shared board from the URL hash in preference to the working board', () => {
@@ -127,6 +177,7 @@ describe('board store', () => {
   it('saves, loads and deletes boards', () => {
     const store = createBoardStore()
     store.state.title = ' PvE '
+    store.state.brush = 'skill'
     store.paint(0)
     expect(store.save()).toBe(true)
     expect(store.state.savedBoards.map((s) => s.title)).toEqual(['PvE'])
@@ -134,10 +185,10 @@ describe('board store', () => {
     store.resetBoard(13)
     store.load(store.state.savedBoards[0]!)
     expect(store.state.board.size).toBe(11)
-    expect(store.state.board.tiles[0]).toBe('on')
+    expect(store.state.board.tiles[0]).toBe('skill')
 
     store.paint(1)
-    expect(store.state.savedBoards[0]!.board.tiles[1]).toBe('off')
+    expect(store.state.savedBoards[0]!.board.tiles[1]).toBe('on')
 
     store.remove('PvE')
     expect(store.state.savedBoards).toEqual([])

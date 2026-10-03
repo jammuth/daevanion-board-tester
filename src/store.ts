@@ -12,6 +12,7 @@ import {
   saveBoard,
   saveWorkingBoard,
 } from './lib/storage'
+import { defaultBoardTitle } from './lib/titles'
 
 export interface BoardStoreState {
   title: string
@@ -27,8 +28,12 @@ export type BoardStore = ReturnType<typeof createBoardStore>
 
 /** A share link in the URL wins over the autosaved working board. */
 export function createBoardStore(initialHash = '', runExact: ExactRunner = runExactInWorker) {
+  const savedBoards = loadSavedBoards()
+  const nextTitle = (boards: SavedBoard[]) => defaultBoardTitle(boards.map((saved) => saved.title))
+
   const shared = parseShareHash(initialHash)
-  const initial = shared ?? loadWorkingBoard() ?? { title: '', board: createBoard(11) }
+  const initial = shared ??
+    loadWorkingBoard() ?? { title: nextTitle(savedBoards), board: createBoard(11) }
 
   const state = reactive<BoardStoreState>({
     title: initial.title,
@@ -36,7 +41,7 @@ export function createBoardStore(initialHash = '', runExact: ExactRunner = runEx
     brush: 'on',
     result: null,
     solving: false,
-    savedBoards: loadSavedBoards(),
+    savedBoards,
   })
 
   watch(
@@ -69,8 +74,10 @@ export function createBoardStore(initialHash = '', runExact: ExactRunner = runEx
       paintTile(state.board, index, state.brush)
     },
 
-    resetBoard(size: BoardSize) {
+    /** A reset board counts as a new board, so it also gets the next default title. */
+    resetBoard(size: BoardSize = state.board.size) {
       state.board = createBoard(size)
+      state.title = nextTitle(state.savedBoards)
     },
 
     /** Shows the instant heuristic answer, then replaces it with the proven optimum. */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { centreIndex, createBoard, neighbours, paintTile } from './board'
+import { centreIndex, createBoard, isFreshBoard, neighbours, paintTile } from './board'
 
 describe('board', () => {
   it('places the start tile in the centre of each size', () => {
@@ -9,9 +9,23 @@ describe('board', () => {
     expect(createBoard(13).tiles[84]).toBe('start')
   })
 
-  it('creates every other tile as off', () => {
-    const board = createBoard(11)
+  it('creates every other tile as grey by default', () => {
+    expect(createBoard(11).tiles.filter((t) => t === 'on')).toHaveLength(120)
+    expect(createBoard(13).tiles.filter((t) => t === 'on')).toHaveLength(168)
+  })
+
+  it('can create a board filled with another state', () => {
+    const board = createBoard(11, 'off')
     expect(board.tiles.filter((t) => t === 'off')).toHaveLength(120)
+    expect(board.tiles[60]).toBe('start')
+  })
+
+  it('recognises a fresh board', () => {
+    const board = createBoard(13)
+    expect(isFreshBoard(board)).toBe(true)
+    paintTile(board, 0, 'off')
+    expect(isFreshBoard(board)).toBe(false)
+    expect(isFreshBoard(createBoard(11, 'off'))).toBe(false)
   })
 
   it('paints tiles but never the start tile', () => {

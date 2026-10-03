@@ -4,7 +4,7 @@ import BoardGrid from './components/BoardGrid.vue'
 import BrushPicker from './components/BrushPicker.vue'
 import ResultPanel from './components/ResultPanel.vue'
 import SavedBoards from './components/SavedBoards.vue'
-import { BOARD_SIZES, type BoardSize } from './lib/board'
+import { BOARD_SIZES, type BoardSize, isFreshBoard } from './lib/board'
 import type { SavedBoard } from './lib/storage'
 import { createBoardStore } from './store'
 
@@ -23,16 +23,21 @@ if (store.loadedFromShare) {
   history.replaceState(null, '', window.location.pathname + window.location.search)
 }
 
-const isEmpty = computed(() =>
-  state.board.tiles.every((tile) => tile === 'off' || tile === 'start'),
-)
+const isFresh = computed(() => isFreshBoard(state.board))
 
 function changeSize(size: BoardSize) {
   if (size === state.board.size) return
-  if (!isEmpty.value && !confirm(`Switch to ${size}×${size}? This clears the current board.`)) {
+  if (!isFresh.value && !confirm(`Switch to ${size}×${size}? This clears the current board.`)) {
     return
   }
   store.resetBoard(size)
+}
+
+function clearBoard() {
+  if (isFresh.value) return
+  if (!confirm('Clear the board? Every tile goes back to grey.')) return
+  store.resetBoard()
+  notice.value = 'Board cleared.'
 }
 
 function save() {
@@ -78,18 +83,31 @@ async function share() {
   <div class="mx-auto flex min-h-screen max-w-6xl flex-col gap-6 p-4">
     <header class="flex flex-wrap items-center justify-between gap-4">
       <h1 class="text-xl font-semibold">Daevanion Board Tester</h1>
-      <div class="flex rounded-md border border-slate-700" role="group" aria-label="Board size">
+      <div class="flex items-center gap-3">
         <button
-          v-for="size in BOARD_SIZES"
-          :key="size"
           type="button"
-          class="px-3 py-1.5 text-sm first:rounded-l-md last:rounded-r-md"
-          :class="state.board.size === size ? 'bg-amber-300 text-slate-900' : 'hover:bg-slate-800'"
-          :aria-pressed="state.board.size === size"
-          @click="changeSize(size)"
+          class="rounded-md border border-red-800 px-3 py-1.5 text-sm text-red-300 hover:bg-red-900/40 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+          :disabled="isFresh"
+          data-testid="clear-board"
+          @click="clearBoard"
         >
-          {{ size }}×{{ size }}
+          Clear
         </button>
+        <div class="flex rounded-md border border-slate-700" role="group" aria-label="Board size">
+          <button
+            v-for="size in BOARD_SIZES"
+            :key="size"
+            type="button"
+            class="px-3 py-1.5 text-sm first:rounded-l-md last:rounded-r-md"
+            :class="
+              state.board.size === size ? 'bg-amber-300 text-slate-900' : 'hover:bg-slate-800'
+            "
+            :aria-pressed="state.board.size === size"
+            @click="changeSize(size)"
+          >
+            {{ size }}×{{ size }}
+          </button>
+        </div>
       </div>
     </header>
 

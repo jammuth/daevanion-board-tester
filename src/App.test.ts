@@ -20,8 +20,7 @@ describe('App', () => {
 
   it('calculates a path and shows the total cost', async () => {
     const wrapper = mount(App)
-    // Default brush is grey; paint a connector above the start, then a skill above that.
-    await wrapper.find('[data-testid="tile-49"]').trigger('click')
+    // Tiles start grey, so a skill two above the start is reached through grey tile 49.
     await wrapper.find('[role="radio"]:nth-child(4)').trigger('click')
     await wrapper.find('[data-testid="tile-38"]').trigger('click')
     await wrapper.find('button.bg-amber-300.font-semibold').trigger('click')
@@ -32,8 +31,18 @@ describe('App', () => {
     expect(wrapper.find('[data-testid="tile-49"]').classes()).toContain('ring-yellow-300')
   })
 
+  it('starts with every tile grey except the start', () => {
+    const wrapper = mount(App)
+    const tiles = wrapper.findAll('[data-testid^="tile-"]')
+    expect(tiles.filter((t) => t.classes().includes('bg-slate-500'))).toHaveLength(120)
+    expect(wrapper.find<HTMLInputElement>('#board-title').element.value).toBe('Board #1')
+  })
+
   it('reports unreachable targets', async () => {
     const wrapper = mount(App)
+    await wrapper.find('[role="radio"]:nth-child(1)').trigger('click')
+    await wrapper.find('[data-testid="tile-1"]').trigger('click')
+    await wrapper.find('[data-testid="tile-11"]').trigger('click')
     await wrapper.find('[role="radio"]:nth-child(5)').trigger('click')
     await wrapper.find('[data-testid="tile-0"]').trigger('click')
     await wrapper.find('button.bg-amber-300.font-semibold').trigger('click')
@@ -44,6 +53,7 @@ describe('App', () => {
   it('asks before clearing a painted board when switching size', async () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
     const wrapper = mount(App)
+    await wrapper.find('[role="radio"]:nth-child(1)').trigger('click')
     await wrapper.find('[data-testid="tile-0"]').trigger('click')
     const thirteen = wrapper.findAll('[aria-label="Board size"] button')[1]!
 
@@ -54,6 +64,31 @@ describe('App', () => {
     confirmSpy.mockReturnValue(true)
     await thirteen.trigger('click')
     expect(wrapper.findAll('[data-testid^="tile-"]')).toHaveLength(169)
+  })
+
+  it('disables Clear on a fresh board', async () => {
+    const wrapper = mount(App)
+    expect(wrapper.find('[data-testid="clear-board"]').attributes('disabled')).toBeDefined()
+  })
+
+  it('clears the board back to grey after confirming, keeping the size', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    const wrapper = mount(App)
+    await wrapper.findAll('[aria-label="Board size"] button')[1]!.trigger('click')
+    await wrapper.find('[role="radio"]:nth-child(1)').trigger('click')
+    await wrapper.find('[data-testid="tile-0"]').trigger('click')
+    const clear = wrapper.find('[data-testid="clear-board"]')
+    expect(clear.attributes('disabled')).toBeUndefined()
+
+    await clear.trigger('click')
+    expect(confirmSpy).toHaveBeenCalledOnce()
+    expect(wrapper.find('[data-testid="tile-0"]').classes()).toContain('bg-black')
+
+    confirmSpy.mockReturnValue(true)
+    await clear.trigger('click')
+    expect(wrapper.find('[data-testid="tile-0"]').classes()).toContain('bg-slate-500')
+    expect(wrapper.findAll('[data-testid^="tile-"]')).toHaveLength(169)
+    expect(wrapper.find('[data-testid="clear-board"]').attributes('disabled')).toBeDefined()
   })
 
   it('opens a shared board from the URL', () => {

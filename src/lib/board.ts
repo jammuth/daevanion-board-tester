@@ -33,10 +33,16 @@ export function isTarget(state: TileState): boolean {
   return state === 'passive' || state === 'skill' || state === 'important'
 }
 
-export function createBoard(size: BoardSize): Board {
-  const tiles: TileState[] = Array.from({ length: size * size }, () => 'off')
+/** New boards default to all grey: carving out the few black tiles is less work than painting every node. */
+export function createBoard(size: BoardSize, fill: PaintState = 'on'): Board {
+  const tiles: TileState[] = Array.from({ length: size * size }, () => fill)
   tiles[centreIndex(size)] = 'start'
   return { size, tiles }
+}
+
+export function isFreshBoard(board: Board): boolean {
+  const centre = centreIndex(board.size)
+  return board.tiles.every((tile, i) => (i === centre ? tile === 'start' : tile === 'on'))
 }
 
 export function paintTile(board: Board, index: number, state: PaintState): void {
