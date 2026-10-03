@@ -9,8 +9,26 @@ This file is read automatically by Claude Code at the start of every session in 
 
 ## Project Overview
 
-<!-- FILL IN PER PROJECT -->
-<!-- 2-4 sentences: what this project is, who it's for, and any context that should change how Claude approaches it (e.g. "payment logic, correctness is non-negotiable" vs "hobby project, move fast"). -->
+A web app for Aion 2 players to plan their Daevanion board: paint the board, press Calculate, and it shows the fewest points needed to unlock every skill level and %-based passive. Hobby project, Vue 3 + Vite + TypeScript + Tailwind, deployed to GitHub Pages by `.github/workflows/deploy-pages.yml` on every push to `main`. The solver's answers must stay correct — the exact solver claims "proven minimum", and its brute-force tests back that up.
+
+### Board rules (what the solver implements)
+
+- Allocation starts from the centre tile, which is free. Tiles connect up/down/left/right only, and a tile can only be allocated next to one already allocated.
+- Tile costs: black = can't be allocated, grey (stat point) = 1, green (passive) = 2, blue (skill) = 3, orange (important) = 4.
+- Every green, blue and orange tile must be allocated; the goal is the fewest total points. Coloured tiles are a fixed cost, so the solver really minimises grey connector tiles.
+- Exact solver (`src/lib/solver/exact.ts`) packs one decimal digit per column into its state key, so it supports boards up to 15 wide. Wider boards need a different key scheme.
+
+### Planned direction
+
+- Grey stat-point tiles are the same for every class: each board has one fixed layout shared by all classes.
+- Replace the grid-size toggle with the five named boards:
+  - Nezekan — 11×11
+  - Zikel — 11×11
+  - Vaizel — 11×11
+  - Triniel — 13×13
+  - Azphel — 15×15
+- The user will capture each board's stat-point layout from the game; those become built-in starting layouts.
+- Then add the ability to highlight a chosen stat, so players can see which tiles to put points into next.
 
 ---
 
