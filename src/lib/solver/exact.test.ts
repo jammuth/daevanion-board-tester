@@ -92,25 +92,30 @@ describe('solveExact', () => {
 
   it.each([
     [11, 1],
-    [11, 2],
-    [13, 3],
-    [13, 4],
-    [13, 5],
-  ] as const)('is valid and never worse than the heuristic on a full %ix%i board', (size, seed) => {
-    const board = randomBoard(size, seededRandom(1000 + seed), {
-      off: 2,
-      on: 5,
-      passive: 1,
-      skill: 1,
-      important: 0.3,
-    })
-    const exact = solveExact(board)
-    const heuristic = solveHeuristic(board)
-    expect(exact.status).toBe(heuristic.status)
-    if (exact.status !== 'ok' || heuristic.status !== 'ok') return
-    expectValidAllocation(board, exact.allocated)
-    expect(exact.cost).toBeLessThanOrEqual(heuristic.cost)
-  })
+    [11, 3],
+    [13, 1],
+    [13, 6],
+    [13, 9],
+  ] as const)(
+    'is valid and never worse than the heuristic on a %i-wide board (seed %i)',
+    (size, seed) => {
+      const board = randomBoard(size, seededRandom(1000 + seed), {
+        off: 2,
+        on: 5,
+        passive: 1,
+        skill: 1,
+        important: 0.3,
+      })
+      const exact = solveExact(board)
+      const heuristic = solveHeuristic(board)
+      // Seeds are chosen to be solvable; an unreachable board would make this test vacuous.
+      if (exact.status !== 'ok' || heuristic.status !== 'ok') {
+        throw new Error(`seed ${seed} is not solvable (${exact.status}); pick another seed`)
+      }
+      expectValidAllocation(board, exact.allocated)
+      expect(exact.cost).toBeLessThanOrEqual(heuristic.cost)
+    },
+  )
 
   it('solves the screenshot board at least as well as the heuristic', () => {
     const exact = solveExact(SCREENSHOT_BOARD)
