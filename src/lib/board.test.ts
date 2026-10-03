@@ -7,11 +7,14 @@ describe('board', () => {
     expect(centreIndex(13)).toBe(84)
     expect(createBoard(11).tiles[60]).toBe('start')
     expect(createBoard(13).tiles[84]).toBe('start')
+    expect(centreIndex(15)).toBe(112)
+    expect(createBoard(15).tiles[112]).toBe('start')
   })
 
   it('creates every other tile as grey by default', () => {
     expect(createBoard(11).tiles.filter((t) => t === 'on')).toHaveLength(120)
     expect(createBoard(13).tiles.filter((t) => t === 'on')).toHaveLength(168)
+    expect(createBoard(15).tiles.filter((t) => t === 'on')).toHaveLength(224)
   })
 
   it('can create a board filled with another state', () => {

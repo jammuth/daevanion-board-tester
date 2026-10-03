@@ -8,8 +8,8 @@ describe('board encoding', () => {
     expect(decodeBoard(encodeBoard(SCREENSHOT_BOARD))).toEqual(SCREENSHOT_BOARD)
   })
 
-  it('round-trips a 13x13 board using every state', () => {
-    const board = createBoard(13)
+  it.each([13, 15] as const)('round-trips a %ix%i board using every state', (size) => {
+    const board = createBoard(size)
     board.tiles.forEach((_, i) => {
       if (board.tiles[i] !== 'start') {
         board.tiles[i] = (['off', 'on', 'passive', 'skill', 'important'] as const)[i % 5]!
@@ -21,6 +21,7 @@ describe('board encoding', () => {
   it('stays short enough for a URL', () => {
     expect(encodeBoard(createBoard(11))).toHaveLength(3 + 61)
     expect(encodeBoard(createBoard(13))).toHaveLength(3 + 85)
+    expect(encodeBoard(createBoard(15))).toHaveLength(3 + 113)
   })
 
   it.each(['', '12.AAAA', '11.AAA', `11.${'~'.repeat(61)}`, `11.${'z'.repeat(61)}`, '11.A.A'])(

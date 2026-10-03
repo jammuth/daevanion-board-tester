@@ -96,6 +96,8 @@ describe('solveExact', () => {
     [13, 1],
     [13, 6],
     [13, 9],
+    [15, 7],
+    [15, 9],
   ] as const)(
     'is valid and never worse than the heuristic on a %i-wide board (seed %i)',
     (size, seed) => {
