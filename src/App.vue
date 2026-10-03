@@ -4,7 +4,7 @@ import BoardGrid from './components/BoardGrid.vue'
 import BrushPicker from './components/BrushPicker.vue'
 import ResultPanel from './components/ResultPanel.vue'
 import SavedBoards from './components/SavedBoards.vue'
-import { BOARD_SIZES, type BoardSize } from './lib/board'
+import { BOARD_SIZES, type BoardSize, isFreshBoard } from './lib/board'
 import type { SavedBoard } from './lib/storage'
 import { createBoardStore } from './store'
 
@@ -23,13 +23,11 @@ if (store.loadedFromShare) {
   history.replaceState(null, '', window.location.pathname + window.location.search)
 }
 
-const isEmpty = computed(() =>
-  state.board.tiles.every((tile) => tile === 'off' || tile === 'start'),
-)
+const isFresh = computed(() => isFreshBoard(state.board))
 
 function changeSize(size: BoardSize) {
   if (size === state.board.size) return
-  if (!isEmpty.value && !confirm(`Switch to ${size}×${size}? This clears the current board.`)) {
+  if (!isFresh.value && !confirm(`Switch to ${size}×${size}? This clears the current board.`)) {
     return
   }
   store.resetBoard(size)

@@ -56,7 +56,7 @@ export function randomBoard(
   weights: Partial<Record<PaintState, number>>,
   radius = Infinity,
 ): Board {
-  const board = createBoard(size)
+  const board = createBoard(size, 'off')
   const mid = (size - 1) / 2
   const entries = Object.entries(weights) as [PaintState, number][]
   const total = entries.reduce((sum, [, w]) => sum + w, 0)

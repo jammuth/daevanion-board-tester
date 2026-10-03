@@ -18,6 +18,11 @@ describe('board store', () => {
     expect(store.loadedFromShare).toBe(false)
   })
 
+  it('starts on an all-grey board', () => {
+    const tiles = createBoardStore().state.board.tiles
+    expect(tiles.filter((t) => t === 'on')).toHaveLength(120)
+  })
+
   it('paints with the selected brush', () => {
     const store = createBoardStore()
     store.state.brush = 'skill'
@@ -29,6 +34,7 @@ describe('board store', () => {
     const store = createBoardStore()
     store.calculate()
     expect(store.state.result).not.toBeNull()
+    store.state.brush = 'off'
     store.paint(3)
     await nextTick()
     expect(store.state.result).toBeNull()
@@ -69,6 +75,7 @@ describe('board store', () => {
   it('skips the exact solver when targets are unreachable', async () => {
     const { runs, runner } = manualRunner()
     const store = createBoardStore('', runner)
+    store.state.board = createBoard(11, 'off')
     store.state.brush = 'skill'
     store.paint(0)
     await store.calculate()
@@ -80,6 +87,7 @@ describe('board store', () => {
     const { runs, runner } = manualRunner()
     const store = createBoardStore('', runner)
     const done = store.calculate()
+    store.state.brush = 'off'
     store.paint(3)
     await nextTick()
     expect(store.state.solving).toBe(false)
@@ -103,10 +111,11 @@ describe('board store', () => {
   it('autosaves and restores the working board', async () => {
     const first = createBoardStore()
     first.state.title = 'Draft'
+    first.state.brush = 'skill'
     first.paint(0)
     await nextTick()
     expect(loadWorkingBoard()?.title).toBe('Draft')
-    expect(createBoardStore().state.board.tiles[0]).toBe('on')
+    expect(createBoardStore().state.board.tiles[0]).toBe('skill')
   })
 
   it('loads a shared board from the URL hash in preference to the working board', () => {
@@ -127,6 +136,7 @@ describe('board store', () => {
   it('saves, loads and deletes boards', () => {
     const store = createBoardStore()
     store.state.title = ' PvE '
+    store.state.brush = 'skill'
     store.paint(0)
     expect(store.save()).toBe(true)
     expect(store.state.savedBoards.map((s) => s.title)).toEqual(['PvE'])
@@ -134,10 +144,10 @@ describe('board store', () => {
     store.resetBoard(13)
     store.load(store.state.savedBoards[0]!)
     expect(store.state.board.size).toBe(11)
-    expect(store.state.board.tiles[0]).toBe('on')
+    expect(store.state.board.tiles[0]).toBe('skill')
 
     store.paint(1)
-    expect(store.state.savedBoards[0]!.board.tiles[1]).toBe('off')
+    expect(store.state.savedBoards[0]!.board.tiles[1]).toBe('on')
 
     store.remove('PvE')
     expect(store.state.savedBoards).toEqual([])
