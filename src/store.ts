@@ -1,7 +1,8 @@
 ﻿import { reactive, toRaw, watch } from 'vue'
 import { type Board, type BoardSize, type PaintState, createBoard, paintTile } from './lib/board'
 import { buildShareHash, parseShareHash } from './lib/share'
-import { type SolveResult, solveHeuristic } from './lib/solver'
+import type { SolveResult } from './lib/solver/common'
+import { solveHeuristic } from './lib/solver/heuristic'
 import {
   type SavedBoard,
   deleteSavedBoard,

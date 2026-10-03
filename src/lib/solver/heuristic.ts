@@ -1,15 +1,11 @@
-import { type Board, type TileState, TILE_COST, centreIndex, isTarget, neighbours } from './board'
-
-export type SolveResult =
-  | {
-      status: 'ok'
-      /** Every allocated tile, including the start tile and all targets. */
-      allocated: number[]
-      /** The grey tiles the solver chose to connect the targets. */
-      connectors: number[]
-      cost: number
-    }
-  | { status: 'unreachable'; unreachable: number[] }
+import { type Board, TILE_COST, centreIndex, isTarget, neighbours } from '../board'
+import {
+  type SolveResult,
+  buildResult,
+  findUnreachableTargets,
+  marginalCost,
+  reachableFrom,
+} from './common'
 
 /**
  * Shortest-path heuristic for the node-weighted Steiner tree: grow a tree from the
@@ -17,16 +13,12 @@ export type SolveResult =
  * any grey tile the tree doesn't need. Not guaranteed optimal.
  */
 export function solveHeuristic(board: Board): SolveResult {
-  const { size, tiles } = board
-  const root = centreIndex(size)
-  const targets = tiles.flatMap((state, i) => (isTarget(state) ? [i] : []))
-
-  const reachable = reachableFrom(board, root, () => true)
-  const unreachable = targets.filter((t) => !reachable.has(t))
+  const unreachable = findUnreachableTargets(board)
   if (unreachable.length > 0) return { status: 'unreachable', unreachable }
 
+  const root = centreIndex(board.size)
   const tree = new Set<number>([root])
-  const remaining = new Set(targets)
+  const remaining = new Set(board.tiles.flatMap((state, i) => (isTarget(state) ? [i] : [])))
 
   while (remaining.size > 0) {
     const path = cheapestPathToTarget(board, tree, remaining)
@@ -37,17 +29,10 @@ export function solveHeuristic(board: Board): SolveResult {
   }
 
   pruneRedundantConnectors(board, root, tree)
-  return buildResult(tiles, tree)
+  return buildResult(board.tiles, tree, false)
 }
 
-/**
- * Targets are always paid for, so passing through one is free from the optimiser's point
- * of view; only grey tiles add marginal cost. That makes this a 0-1 BFS.
- */
-function marginalCost(state: TileState): number {
-  return state === 'on' ? 1 : 0
-}
-
+/** 0-1 BFS, since marginal costs are only ever 0 or 1. */
 function cheapestPathToTarget(board: Board, tree: Set<number>, remaining: Set<number>): number[] {
   const { size, tiles } = board
   const dist = new Map<number, number>()
@@ -102,33 +87,5 @@ function pruneRedundantConnectors(board: Board, root: number, tree: Set<number>)
         tree.add(index)
       }
     }
-  }
-}
-
-function reachableFrom(
-  board: Board,
-  root: number,
-  allowed: (index: number) => boolean,
-): Set<number> {
-  const seen = new Set<number>([root])
-  const stack = [root]
-  while (stack.length > 0) {
-    const current = stack.pop()!
-    for (const next of neighbours(board.size, current)) {
-      if (seen.has(next) || TILE_COST[board.tiles[next]!] === null || !allowed(next)) continue
-      seen.add(next)
-      stack.push(next)
-    }
-  }
-  return seen
-}
-
-function buildResult(tiles: TileState[], tree: Set<number>): SolveResult {
-  const allocated = [...tree].sort((a, b) => a - b)
-  return {
-    status: 'ok',
-    allocated,
-    connectors: allocated.filter((i) => tiles[i] === 'on'),
-    cost: allocated.reduce((sum, i) => sum + TILE_COST[tiles[i]!]!, 0),
   }
 }

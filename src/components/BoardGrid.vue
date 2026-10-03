@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Board } from '../lib/board'
-import type { SolveResult } from '../lib/solver'
+import type { SolveResult } from '../lib/solver/common'
 import { TILE_CLASS, TILE_LABEL } from '../tileStyles'
 
 const props = defineProps<{ board: Board; result: SolveResult | null }>()

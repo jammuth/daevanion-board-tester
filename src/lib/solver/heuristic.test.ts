@@ -1,29 +1,11 @@
-import { describe, expect, it } from 'vitest'
-import { type Board, TILE_COST, centreIndex, isTarget, neighbours } from './board'
-import { solveHeuristic } from './solver'
-import { SCREENSHOT_BOARD, asciiBoard } from './testing/asciiBoard'
-
-function expectValidAllocation(board: Board, allocated: number[]) {
-  const set = new Set(allocated)
-  const root = centreIndex(board.size)
-  expect(set.has(root)).toBe(true)
-  board.tiles.forEach((state, i) => {
-    if (isTarget(state)) expect(set.has(i)).toBe(true)
-  })
-  for (const i of set) expect(TILE_COST[board.tiles[i]!]).not.toBeNull()
-
-  const seen = new Set([root])
-  const stack = [root]
-  while (stack.length) {
-    for (const next of neighbours(board.size, stack.pop()!)) {
-      if (set.has(next) && !seen.has(next)) {
-        seen.add(next)
-        stack.push(next)
-      }
-    }
-  }
-  expect(seen.size).toBe(set.size)
-}
+﻿import { describe, expect, it } from 'vitest'
+import { SCREENSHOT_BOARD, asciiBoard } from '../testing/asciiBoard'
+import {
+  expectValidAllocation,
+  fixedTargetCost,
+  isConnectedAllocation,
+} from '../testing/solverChecks'
+import { solveHeuristic } from './heuristic'
 
 const EMPTY_ROW = 'x x x x x x x x x x x'
 
@@ -36,7 +18,13 @@ describe('solveHeuristic', () => {
         ...Array(5).fill(EMPTY_ROW),
       ]),
     )
-    expect(result).toEqual({ status: 'ok', allocated: [60], connectors: [], cost: 0 })
+    expect(result).toEqual({
+      status: 'ok',
+      allocated: [60],
+      connectors: [],
+      cost: 0,
+      optimal: false,
+    })
   })
 
   it('charges the tile cost for each target and nothing for the start', () => {
@@ -116,11 +104,7 @@ describe('solveHeuristic', () => {
     if (result.status !== 'ok') return
     expectValidAllocation(SCREENSHOT_BOARD, result.allocated)
 
-    const targetCost = SCREENSHOT_BOARD.tiles.reduce(
-      (sum, state) => sum + (isTarget(state) ? TILE_COST[state]! : 0),
-      0,
-    )
-    expect(result.cost).toBe(targetCost + result.connectors.length)
+    expect(result.cost).toBe(fixedTargetCost(SCREENSHOT_BOARD) + result.connectors.length)
   })
 
   it('leaves no grey tile that could be removed', () => {
@@ -128,7 +112,7 @@ describe('solveHeuristic', () => {
     if (result.status !== 'ok') throw new Error('expected ok')
     for (const connector of result.connectors) {
       const without = result.allocated.filter((i) => i !== connector)
-      expect(() => expectValidAllocation(SCREENSHOT_BOARD, without)).toThrow()
+      expect(isConnectedAllocation(SCREENSHOT_BOARD, without)).toBe(false)
     }
   })
 })
