@@ -5,7 +5,7 @@ import type { SolveResult } from './lib/solver/common'
 import { solveExact } from './lib/solver/exact'
 import type { ExactRunner } from './lib/solver/runExact'
 import { buildShareHash } from './lib/share'
-import { loadWorkingBoard } from './lib/storage'
+import { loadWorkingBoard, saveBoard } from './lib/storage'
 import { SCREENSHOT_BOARD } from './lib/testing/asciiBoard'
 import { createBoardStore } from './store'
 
@@ -23,15 +23,45 @@ describe('board store', () => {
     expect(tiles.filter((t) => t === 'on')).toHaveLength(120)
   })
 
-  it('clears to a fresh grey board of the same size, keeping the title', () => {
+  it('clears to a fresh grey board of the same size', () => {
     const store = createBoardStore()
     store.resetBoard(13)
-    store.state.title = 'Keep me'
     store.state.brush = 'off'
     store.paint(0)
     store.resetBoard()
     expect(store.state.board).toEqual(createBoard(13))
-    expect(store.state.title).toBe('Keep me')
+  })
+
+  it('titles a brand-new board after the saved-board count', () => {
+    expect(createBoardStore().state.title).toBe('Board #1')
+    localStorage.clear()
+    saveBoard('PvE', createBoard(11))
+    saveBoard('PvP', createBoard(11))
+    expect(createBoardStore().state.title).toBe('Board #3')
+  })
+
+  it('keeps the title of a restored working board or shared link', async () => {
+    const first = createBoardStore()
+    first.state.title = 'My draft'
+    await nextTick()
+    expect(createBoardStore().state.title).toBe('My draft')
+    const shared = createBoardStore(buildShareHash({ title: 'Shared', board: SCREENSHOT_BOARD }))
+    expect(shared.state.title).toBe('Shared')
+  })
+
+  it('gives a cleared or resized board the next free default title', () => {
+    const store = createBoardStore()
+    store.state.title = 'Board #1'
+    store.save()
+    store.state.title = 'Board #2'
+    store.save()
+    store.remove('Board #1')
+
+    store.resetBoard()
+    expect(store.state.title).toBe('Board #3')
+    store.state.title = 'Renamed'
+    store.resetBoard(13)
+    expect(store.state.title).toBe('Board #3')
   })
 
   it('paints with the selected brush', () => {

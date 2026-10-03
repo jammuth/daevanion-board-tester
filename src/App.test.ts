@@ -35,6 +35,7 @@ describe('App', () => {
     const wrapper = mount(App)
     const tiles = wrapper.findAll('[data-testid^="tile-"]')
     expect(tiles.filter((t) => t.classes().includes('bg-slate-500'))).toHaveLength(120)
+    expect(wrapper.find<HTMLInputElement>('#board-title').element.value).toBe('Board #1')
   })
 
   it('reports unreachable targets', async () => {
