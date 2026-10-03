@@ -1,9 +1,11 @@
-import { type Board, centreIndex, isTarget } from '../board'
+﻿import { type Board, centreIndex, isTarget } from '../board'
 import { type SolveResult, buildResult, findUnreachableTargets, marginalCost } from './common'
 import { solveHeuristic } from './heuristic'
 
-const LABEL_BASE = 16
-const NEW_LABEL = LABEL_BASE - 1
+const LABEL_BASE = 10
+// Any value above the largest normalised label works as a placeholder for a new component.
+const NEW_LABEL = 255
+const MAX_WIDTH = 15
 
 interface Layer {
   prev: Int32Array
@@ -25,6 +27,7 @@ export function solveExact(board: Board): SolveResult {
   if (unreachable.length > 0) return { status: 'unreachable', unreachable }
 
   const { size: width, tiles } = board
+  if (width > MAX_WIDTH) throw new Error(`Exact solver supports widths up to ${MAX_WIDTH}`)
   const cellCount = width * width
   const root = centreIndex(width)
   const required = tiles.map((state, i) => i === root || isTarget(state))
@@ -32,11 +35,11 @@ export function solveExact(board: Board): SolveResult {
 
   const frontier = new Uint8Array(width)
   const scratch = new Uint8Array(width)
-  const relabel = new Uint8Array(LABEL_BASE)
+  const relabel = new Uint8Array(NEW_LABEL + 1)
 
-  // Keys stay below 16^13 = 2^52, inside the exact-integer range of a double.
+  // One decimal digit per column. Distinct components on a row segment need a gap between
+  // them, so a 15-wide frontier holds at most 8 labels, and 10^15 stays below 2^53.
   const encode = (labels: Uint8Array): number => {
-    relabel.fill(0)
     let next = 1
     let key = 0
     let multiplier = 1
@@ -46,6 +49,8 @@ export function solveExact(board: Board): SolveResult {
       key += relabel[label]! * multiplier
       multiplier *= LABEL_BASE
     }
+    for (let c = 0; c < width; c++) relabel[labels[c]!] = 0
+    if (next > LABEL_BASE) throw new Error(`Frontier has more than ${LABEL_BASE - 1} components`)
     return key
   }
 

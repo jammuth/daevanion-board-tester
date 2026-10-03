@@ -66,6 +66,15 @@ describe('App', () => {
     expect(wrapper.findAll('[data-testid^="tile-"]')).toHaveLength(169)
   })
 
+  it('offers a 15x15 board', async () => {
+    const wrapper = mount(App)
+    const sizes = wrapper.findAll('[aria-label="Board size"] button')
+    expect(sizes.map((b) => b.text())).toEqual(['11×11', '13×13', '15×15'])
+    await sizes[2]!.trigger('click')
+    expect(wrapper.findAll('[data-testid^="tile-"]')).toHaveLength(225)
+    expect(wrapper.find('[data-testid="tile-112"]').classes()).toContain('bg-amber-300')
+  })
+
   it('disables Clear on a fresh board', async () => {
     const wrapper = mount(App)
     expect(wrapper.find('[data-testid="clear-board"]').attributes('disabled')).toBeDefined()

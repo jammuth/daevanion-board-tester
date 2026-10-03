@@ -2,7 +2,7 @@ export const PAINT_STATES = ['off', 'on', 'passive', 'skill', 'important'] as co
 export type PaintState = (typeof PAINT_STATES)[number]
 export type TileState = PaintState | 'start'
 
-export const BOARD_SIZES = [11, 13] as const
+export const BOARD_SIZES = [11, 13, 15] as const
 export type BoardSize = (typeof BOARD_SIZES)[number]
 
 export interface Board {
